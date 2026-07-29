@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F8; --card:#FFFFFF; --border:#E2E6EB;
+    --text:#1F2933; --muted:#6B7785; --muted-2:#9AA5B1;
+    --primary:#2E5A88; --primary-dark:#1F3F60; --primary-tint:#EAF1F8;
+    --success:#2F7A52; --success-tint:#E9F5EE;
+    --danger:#B3423B; --danger-tint:#FBECEA;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; padding-bottom:60px; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:660px; margin:0 auto; padding:0 20px;}
+
+  header{padding:32px 20px 22px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--primary); margin-bottom:8px; font-weight:600;}
+  h1{font-weight:700; font-size:26px; color:var(--text);}
+  .status{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted); margin-top:8px; display:flex; align-items:center; gap:6px;}
+  .status .dot{width:7px; height:7px; border-radius:50%; background:var(--muted-2); display:inline-block;}
+  .status.ok .dot{background:var(--success);}
+  .status.bad .dot{background:var(--danger);}
+  .status.ok{color:var(--success);}
+  .status.bad{color:var(--danger);}
+
+  main{padding-top:6px;}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:16px; box-shadow:0 1px 2px rgba(16,24,32,0.04);}
+  .card h2{font-weight:600; font-size:14px; color:var(--text); margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;}
+  .card h2 .sub{font-weight:500; font-size:11.5px; color:var(--muted-2); font-family:'JetBrains Mono',monospace; text-transform:none;}
+
+  /* TABS */
+  .tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--bg); padding:4px; border-radius:9px; border:1px solid var(--border);}
+  .tab-btn{
+    flex:1; padding:9px 10px; border:none; background:transparent; color:var(--muted);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px; border-radius:6px; cursor:pointer;
+  }
+  .tab-btn.active{background:var(--card); color:var(--primary); box-shadow:0 1px 2px rgba(16,24,32,0.08);}
+
+  /* FORM ELEMENTS */
+  label{display:block; font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:6px; margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input, select{
+    width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text);
+    padding:10px 12px; border-radius:8px; font-size:14.5px; font-family:'Inter',sans-serif;
+  }
+  input:focus, select:focus{outline:none; border-color:var(--primary); background:var(--card);}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .link-btn{background:none; border:none; color:var(--primary); font-size:12.5px; font-weight:600; cursor:pointer; padding:0; text-decoration:underline; margin-top:10px;}
+
+  /* GIF PREVIEW CARD */
+  .exercise-preview{
+    margin-top:16px; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg);
+    display:none;
+  }
+  .exercise-preview.show{display:block;}
+  .exercise-preview img{width:100%; display:block; max-height:260px; object-fit:cover; background:#fff;}
+  .exercise-preview .meta{padding:12px 14px;}
+  .exercise-preview .meta .name{font-weight:700; font-size:15px; margin-bottom:4px; text-transform:capitalize;}
+  .tag-row{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
+  .tag{font-family:'JetBrains Mono',monospace; font-size:10.5px; background:var(--primary-tint); color:var(--primary); padding:3px 8px; border-radius:20px; text-transform:capitalize;}
+
+  /* STOPWATCH */
+  .stopwatch{text-align:center; padding:6px 0 4px;}
+  .clock{font-family:'JetBrains Mono',monospace; font-size:44px; font-weight:700; letter-spacing:.02em; color:var(--text);}
+  .clock.running{color:var(--success);}
+  .sw-buttons{display:flex; gap:8px; justify-content:center; margin-top:14px;}
+  button{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    border:1px solid var(--border); background:var(--card); color:var(--text);
+    padding:9px 16px; border-radius:8px; cursor:pointer;
+  }
+  button.primary{background:var(--primary); color:#fff; border-color:var(--primary);}
+  button.primary:hover:not(:disabled){background:var(--primary-dark);}
+  button.stop{background:var(--danger); color:#fff; border-color:var(--danger);}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+
+  /* SETS BUILDER */
+  .set-row{
+    display:grid; grid-template-columns:36px 1fr 1fr 32px; gap:8px; align-items:center; margin-top:10px;
+  }
+  .set-row .set-num{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--primary);
+    background:var(--primary-tint); border-radius:6px; height:38px; display:flex; align-items:center; justify-content:center;
+  }
+  .set-row input{padding:8px 10px; font-size:14px;}
+  .set-remove{
+    background:none; border:none; color:var(--muted-2); font-size:16px; cursor:pointer; padding:0;
+    width:32px; height:38px; display:flex; align-items:center; justify-content:center;
+  }
+  .set-remove:hover{color:var(--danger);}
+  .add-set-btn{
+    width:100%; margin-top:12px; border-style:dashed; color:var(--primary); background:var(--primary-tint); border-color:var(--primary);
+  }
+  .submit-btn{width:100%; margin-top:18px; padding:13px; font-size:14.5px;}
+
+  /* TODAY'S LOG */
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; color:var(--muted-2); padding:6px 6px; border-bottom:1px solid var(--border);}
+  td{padding:8px 6px; border-bottom:1px solid var(--bg); text-transform:capitalize;}
+  td.dur{font-family:'JetBrains Mono',monospace; color:var(--primary); white-space:nowrap;}
+  .empty{color:var(--muted-2); font-size:13px; padding:14px 0; text-align:center;}
+  .refresh{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); background:none; border:none; padding:0; text-decoration:underline; cursor:pointer; font-weight:500;}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="eyebrow">Personal Training Log</div>
+  <h1>Workout Tracker</h1>
+  <div id="connStatus" class="status"><span class="dot"></span><span>Checking connection…</span></div>
+</header>
+
+<main class="wrap">
+
+  <!-- EXERCISE SELECTION -->
+  <div class="card">
+    <h2>Select Exercise</h2>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabBrowse">Browse by Body Part</button>
+      <button class="tab-btn" id="tabManual">Type Manually</button>
+    </div>
+
+    <div id="browsePanel">
+      <label for="bodyPartSelect">Body Part</label>
+      <select id="bodyPartSelect">
+        <option value="">Select a body part…</option>
+      </select>
+
+      <label for="exerciseSelect">Exercise</label>
+      <select id="exerciseSelect" disabled>
+        <option value="">Select a body part first…</option>
+      </select>
+
+      <button class="link-btn" id="cantFindBtn">Can't find it? Type it manually instead →</button>
+
+      <div class="exercise-preview" id="exercisePreview">
+        <img id="previewGif" src="" alt="">
+        <div class="meta">
+          <div class="name" id="previewName"></div>
+          <div class="tag-row" id="previewTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="manualPanel" style="display:none;">
+      <label for="manualExercise">Exercise Name</label>
+      <input id="manualExercise" type="text" placeholder="e.g. Cable Chest Fly">
+    </div>
+  </div>
+
+  <!-- STOPWATCH -->
+  <div class="card">
+    <h2>Session Timer</h2>
+    <div class="stopwatch">
+      <div id="clock" class="clock">00:00</div>
+      <div class="sw-buttons">
+        <button id="startBtn" class="primary">Start</button>
+        <button id="stopBtn" class="stop" disabled>Stop</button>
+        <button id="resetBtn" disabled>Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETS -->
+  <div class="card">
+    <h2>Sets<span class="sub" id="setCount">1 set</span></h2>
+    <div id="setsContainer"></div>
+    <button class="add-set-btn" id="addSetBtn">+ Add Set</button>
+
+    <label for="notes" style="margin-top:16px;">Notes (optional)</label>
+    <input id="notes" type="text" placeholder="e.g. felt strong, last set to failure">
+
+    <button id="logBtn" class="primary submit-btn">Submit Exercise</button>
+    <div id="logStatus" class="status" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- TODAY'S LOG -->
+  <div class="card">
+    <h2>Today's Log <button class="refresh" id="refreshBtn">refresh</button></h2>
+    <div id="logTableWrap"><div class="empty">Loading…</div></div>
+  </div>
+
+</main>
+
+<script>
+  // ====== CONFIG ======
+  const WEB_APP_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+  // =====================
+
+  // ---- Starter exercise library (verified real demo GIFs) ----
+  // Add more entries any time — same shape: {id, name, bodyPart, equipment, target, gif}
+  const EXERCISE_DB = [
+    { id:'EIeI8Vf', name:'Barbell Bench Press', bodyPart:'Chest', equipment:'Barbell', target:'Pectorals', gif:'https://static.exercisedb.dev/media/EIeI8Vf.gif' },
+    { id:'0CXGHya', name:'Cable Cross-Over', bodyPart:'Chest', equipment:'Cable', target:'Pectorals', gif:'https://static.exercisedb.dev/media/0CXGHya.gif' },
+    { id:'01qpYSe', name:'Upward Facing Dog', bodyPart:'Back', equipment:'Body Weight', target:'Spine', gif:'https://static.exercisedb.dev/media/01qpYSe.gif' },
+    { id:'0I5fUyn', name:'Band Underhand Pulldown', bodyPart:'Back', equipment:'Band', target:'Lats', gif:'https://static.exercisedb.dev/media/0I5fUyn.gif' },
+    { id:'0dCyly0', name:'Barbell Seated Press', bodyPart:'Shoulders', equipment:'Barbell', target:'Delts', gif:'https://static.exercisedb.dev/media/0dCyly0.gif' },
+    { id:'05Cf2v8', name:'Dips', bodyPart:'Upper Arms', equipment:'Body Weight', target:'Triceps', gif:'https://static.exercisedb.dev/media/05Cf2v8.gif' },
+    { id:'0IgNjSM', name:'Dumbbell Standing Reverse Curl', bodyPart:'Upper Arms', equipment:'Dumbbell', target:'Biceps', gif:'https://static.exercisedb.dev/media/0IgNjSM.gif' },
+    { id:'0br45wL', name:'Push-Up with Leg Kick', bodyPart:'Upper Legs', equipment:'Body Weight', target:'Glutes', gif:'https://static.exercisedb.dev/media/0br45wL.gif' },
+    { id:'0jp9Rlz', name:'One Leg Floor Calf Raise', bodyPart:'Lower Legs', equipment:'Body Weight', target:'Calves', gif:'https://static.exercisedb.dev/media/0jp9Rlz.gif' },
+    { id:'03lzqwk', name:'Assisted Hanging Knee Raise', bodyPart:'Waist', equipment:'Assisted', target:'Abs', gif:'https://static.exercisedb.dev/media/03lzqwk.gif' },
+    { id:'0JtKWum', name:'Dumbbell Burpee', bodyPart:'Cardio', equipment:'Dumbbell', target:'Cardiovascular System', gif:'https://static.exercisedb.dev/media/0JtKWum.gif' }
+  ];
+
+  const bodyParts = [...new Set(EXERCISE_DB.map(e => e.bodyPart))].sort();
+  const bodyPartSelect = document.getElementById('bodyPartSelect');
+  bodyParts.forEach(bp => {
+    const opt = document.createElement('option');
+    opt.value = bp; opt.textContent = bp;
+    bodyPartSelect.appendChild(opt);
+  });
+
+  const exerciseSelect = document.getElementById('exerciseSelect');
+  bodyPartSelect.addEventListener('change', () => {
+    const bp = bodyPartSelect.value;
+    exerciseSelect.innerHTML = '';
+    hidePreview();
+    if (!bp) {
+      exerciseSelect.disabled = true;
+      exerciseSelect.innerHTML = '<option value="">Select a body part first…</option>';
+      return;
+    }
+    exerciseSelect.disabled = false;
+    const opts = ['<option value="">Select an exercise…</option>']
+      .concat(EXERCISE_DB.filter(e => e.bodyPart === bp).map(e => `<option value="${e.id}">${e.name}</option>`));
+    exerciseSelect.innerHTML = opts.join('');
+  });
+
+  const previewEl = document.getElementById('exercisePreview');
+  function hidePreview(){ previewEl.classList.remove('show'); }
+  function showPreview(ex){
+    document.getElementById('previewGif').src = ex.gif;
+    document.getElementById('previewName').textContent = ex.name;
+    document.getElementById('previewTags').innerHTML =
+      `<span class="tag">${ex.bodyPart}</span><span class="tag">${ex.equipment}</span><span class="tag">${ex.target}</span>`;
+    previewEl.classList.add('show');
+  }
+  exerciseSelect.addEventListener('change', () => {
+    const ex = EXERCISE_DB.find(e => e.id === exerciseSelect.value);
+    if (ex) showPreview(ex); else hidePreview();
+  });
+
+  // ---- Tabs ----
+  const tabBrowse = document.getElementById('tabBrowse');
+  const tabManual = document.getElementById('tabManual');
+  const browsePanel = document.getElementById('browsePanel');
+  const manualPanel = document.getElementById('manualPanel');
+  function switchTab(mode){
+    if (mode === 'browse') {
+      tabBrowse.classList.add('active'); tabManual.classList.remove('active');
+      browsePanel.style.display = ''; manualPanel.style.display = 'none';
+    } else {
+      tabManual.classList.add('active'); tabBrowse.classList.remove('active');
+      manualPanel.style.display = ''; browsePanel.style.display = 'none';
+    }
+  }
+  tabBrowse.addEventListener('click', () => switchTab('browse'));
+  tabManual.addEventListener('click', () => switchTab('manual'));
+  document.getElementById('cantFindBtn').addEventListener('click', () => switchTab('manual'));
+
+  function getSelectedExerciseName(){
+    if (tabManual.classList.contains('active')) {
+      return document.getElementById('manualExercise').value.trim();
+    }
+    const ex = EXERCISE_DB.find(e => e.id === exerciseSelect.value);
+    return ex ? ex.name : '';
+  }
+  function getSelectedBodyPart(){
+    if (tabManual.classList.contains('active')) return '';
+    const ex = EXERCISE_DB.find(e => e.id === exerciseSelect.value);
+    return ex ? ex.bodyPart : '';
+  }
+
+  // ---- Stopwatch ----
+  let timerInterval = null, elapsedSeconds = 0, running = false;
+  const clockEl = document.getElementById('clock');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  function formatTime(sec){
+    const m = Math.floor(sec/60).toString().padStart(2,'0');
+    const s = (sec%60).toString().padStart(2,'0');
+    return `${m}:${s}`;
+  }
+  function tick(){ elapsedSeconds++; clockEl.textContent = formatTime(elapsedSeconds); }
+
+  startBtn.addEventListener('click', () => {
+    if (running) return;
+    running = true; clockEl.classList.add('running');
+    timerInterval = setInterval(tick, 1000);
+    startBtn.disabled = true; stopBtn.disabled = false; resetBtn.disabled = true;
+  });
+  stopBtn.addEventListener('click', () => {
+    running = false; clockEl.classList.remove('running');
+    clearInterval(timerInterval);
+    startBtn.disabled = false; stopBtn.disabled = true; resetBtn.disabled = false;
+  });
+  resetBtn.addEventListener('click', () => {
+    elapsedSeconds = 0; clockEl.textContent = '00:00'; resetBtn.disabled = true;
+  });
+
+  // ---- Sets builder ----
+  let setCount = 1;
+  const setsContainer = document.getElementById('setsContainer');
+  const setCountLabel = document.getElementById('setCount');
+
+  function renumberSets(){
+    [...setsContainer.querySelectorAll('.set-row')].forEach((row, i) => {
+      row.querySelector('.set-num').textContent = `#${i+1}`;
+    });
+    const n = setsContainer.querySelectorAll('.set-row').length;
+    setCountLabel.textContent = `${n} set${n>1?'s':''}`;
+  }
+
+  function addSetRow(){
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+      <div class="set-num">#${setsContainer.children.length+1}</div>
+      <input type="number" min="0" placeholder="Reps" class="reps-input">
+      <input type="number" min="0" step="0.5" placeholder="Weight (kg)" class="weight-input">
+      <button type="button" class="set-remove" title="Remove set">✕</button>
+    `;
+    row.querySelector('.set-remove').addEventListener('click', () => {
+      if (setsContainer.querySelectorAll('.set-row').length <= 1) return;
+      row.remove(); renumberSets();
+    });
+    setsContainer.appendChild(row);
+    renumberSets();
+  }
+  addSetRow(); // start with Set 1
+  document.getElementById('addSetBtn').addEventListener('click', addSetRow);
+
+  function resetSets(){
+    setsContainer.innerHTML = '';
+    addSetRow();
+  }
+
+  // ---- Submit ----
+  function todayStr(){ return new Date().toISOString().split('T')[0]; }
+  function dayName(){ return new Date().toLocaleDateString('en-US', { weekday: 'long' }); }
+
+  document.getElementById('logBtn').addEventListener('click', async () => {
+    const exercise = getSelectedExerciseName();
+    const bodyPart = getSelectedBodyPart();
+    const notes = document.getElementById('notes').value.trim();
+    const logStatus = document.getElementById('logStatus');
+
+    if (!exercise) {
+      logStatus.textContent = 'Choose or type an exercise first.';
+      logStatus.className = 'status bad';
+      return;
+    }
+    if (WEB_APP_URL.includes('PASTE_YOUR')) {
+      logStatus.textContent = 'Web App URL not configured yet — see setup steps.';
+      logStatus.className = 'status bad';
+      return;
+    }
+
+    const setRows = [...setsContainer.querySelectorAll('.set-row')];
+    logStatus.textContent = 'Saving…';
+    logStatus.className = 'status';
+
+    try {
+      for (let i = 0; i < setRows.length; i++) {
+        const reps = setRows[i].querySelector('.reps-input').value;
+        const weight = setRows[i].querySelector('.weight-input').value;
+        const payload = {
+          date: todayStr(), day: dayName(),
+          exercise, bodyPart,
+          setNumber: i + 1, reps, weight,
+          duration: elapsedSeconds, notes
+        };
+        await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+      }
+      logStatus.textContent = `Logged ✓ ${exercise} — ${setRows.length} set(s), ${elapsedSeconds}s`;
+      logStatus.className = 'status ok';
+
+      // reset for next exercise
+      document.getElementById('manualExercise').value = '';
+      bodyPartSelect.value = '';
+      exerciseSelect.innerHTML = '<option value="">Select a body part first…</option>';
+      exerciseSelect.disabled = true;
+      hidePreview();
+      document.getElementById('notes').value = '';
+      resetSets();
+      elapsedSeconds = 0; clockEl.textContent = '00:00'; resetBtn.disabled = true;
+      switchTab('browse');
+
+      loadTodayLog();
+    } catch (err) {
+      logStatus.textContent = 'Save failed — check the Web App URL / deployment.';
+      logStatus.className = 'status bad';
+    }
+  });
+
+  // ---- Today's log ----
+  async function loadTodayLog(){
+    const wrap = document.getElementById('logTableWrap');
+    if (WEB_APP_URL.includes('PASTE_YOUR')) {
+      wrap.innerHTML = '<div class="empty">Connect your Web App URL to see today\'s log.</div>';
+      return;
+    }
+    try {
+      const res = await fetch(`${WEB_APP_URL}?date=${todayStr()}`);
+      const data = await res.json();
+      if (!data.length) {
+        wrap.innerHTML = '<div class="empty">No sets logged yet today.</div>';
+        return;
+      }
+      let html = '<table><tr><th>Exercise</th><th>Set</th><th>Reps</th><th>Wt</th><th>Time</th></tr>';
+      data.forEach(r => {
+        html += `<tr><td>${r.Exercise||''}</td><td>${r.SetNumber||''}</td><td>${r.Reps||''}</td><td>${r.Weight||''}</td><td class="dur">${r.Duration||0}s</td></tr>`;
+      });
+      html += '</table>';
+      wrap.innerHTML = html;
+    } catch (err) {
+      wrap.innerHTML = '<div class="empty">Could not load log.</div>';
+    }
+  }
+  document.getElementById('refreshBtn').addEventListener('click', loadTodayLog);
+
+  async function checkConnection(){
+    const statusEl = document.getElementById('connStatus');
+    if (WEB_APP_URL.includes('PASTE_YOUR')) {
+      statusEl.innerHTML = '<span class="dot"></span><span>Not connected — paste your Web App URL in the code (see setup steps)</span>';
+      statusEl.className = 'status bad';
+      return;
+    }
+    try {
+      const res = await fetch(`${WEB_APP_URL}?date=${todayStr()}`);
+      if (res.ok) {
+        statusEl.innerHTML = '<span class="dot"></span><span>Connected to Google Sheet</span>';
+        statusEl.className = 'status ok';
+      } else { throw new Error('bad response'); }
+    } catch (err) {
+      statusEl.innerHTML = '<span class="dot"></span><span>Could not reach Web App — check deployment/URL</span>';
+      statusEl.className = 'status bad';
+    }
+  }
+
+  checkConnection();
+  loadTodayLog();
+</script>
+</body>
+</html>
